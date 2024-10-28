@@ -1,0 +1,41 @@
+on:
+  push:
+    branches:
+      - main
+
+name: 🚀 Deploy website on push
+
+jobs:
+  web-deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 🚚 Get latest code
+        uses: actions/checkout@v4
+      
+      - name: 📂 Upload build files to cPanel via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}  # Certifique-se de que este valor esteja correto
+          username: ${{ secrets.FTP_USERNAME }} # Certifique-se de que este valor esteja correto
+          password: ${{ secrets.FTP_PASSWORD }} # Certifique-se de que este valor esteja correto
+          server-dir: /public_html/
+          port: 21
+          protocol: ftp
+          exclude: |
+            **/.git*
+            **/.git*/**
+
+      - name: Clear cache (optional)
+        run: curl -X GET http://erpress.com.br/?clear_cache=true || echo "Cache clearing failed, but continuing..."
+
+      - name: Test FTP Connection
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ftp
+          ftp -inv ${{ secrets.FTP_HOST }} <<EOF
+          user ${{ secrets.FTP_USERNAME }} ${{ secrets.FTP_PASSWORD }}
+          ls
+          bye
+          EOF || echo "FTP connection test failed, but continuing..."
